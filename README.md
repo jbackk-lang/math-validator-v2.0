@@ -1,98 +1,142 @@
-## 🔗 Wszystkie modele i repozytoria
-Pełna lista projektów znajduje się na stronie:
-https://jbackk-lang.github.io
----
 # math-validator-2.0
 
-`math-validator-2.0` to druga generacja walidatora struktur matematycznych.  
-Został zaprojektowany tak, aby wykrywać nie tylko błędy składniowe, ale również
-tzw. **problemy mylne** — wyrażenia pozornie poprawne, które są niespójne
-w szerszym kontekście logicznym.
+Walidator wyrażeń matematycznych oparty na SymPy. Wyrażenie przepuszczane jest
+raz przez parser (`core.py`), a następnie przez 12 niezależnych filtrów
+analizujących różne aspekty: składnię, algebrę, logikę, rozwiązania numeryczne,
+strukturę harmoniczną, "möbiusowość" (inwersje/pętle), topologię (dziedzinę
+ciągłości), osobliwości i skręty τ, widmo liczb pierwszych, wyrażenia mylące
+oraz powiązania z Problemami Milenijnymi.
+
+Udostępniony jako REST API (FastAPI) z prostym interfejsem webowym zawierającym
+edytor + klawiaturę matematyczną (cyfry, operatory, zmienne, funkcje).
 
 ---
 
-## 🔧 Funkcje
+## Uruchomienie
 
-- analiza składniowa wyrażeń matematycznych,
-- wykrywanie sprzeczności,
-- klasyfikacja błędów:
-  - `OK` — poprawne,
-  - `ERROR` — błąd składni lub sprzeczność,
-  - `MISLEADING` — problem mylny (pozorna poprawność),
-- modułowa architektura (parser → walidator → raport),
-- przygotowany pod integrację z TRM / TIMDR (Λ–Τ–Ρ).
+```
+run.bat
+```
 
----
+Skrypt instaluje `fastapi`, `uvicorn`, `sympy` i odpala serwer pod
+`http://127.0.0.1:8000`. Interfejs webowy jest pod `/`, samo API pod
+`/validate?expr=...`.
 
-## 🆚 Różnice względem `math-validator` (1.0)
-
-- przebudowany parser,
-- rozszerzona logika błędów,
-- dodany typ `MISLEADING`,
-- możliwość eksportu wyników do CSV / JSONL,
-- przygotowane miejsce na integrację z TRM i TIMDR.
-
----
-Problemy mylne (MISLEADING)
-„Problem mylny” to wyrażenie, które:
-
-wygląda poprawnie,
-
-przechodzi podstawową składnię,
-
-ale jest niespójne logicznie lub niejednoznaczne.
-
-Przykłady:
-
-1=1=1
-
-(a=b=c)
-
-0^0=1 (zależne od kontekstu)
-
-## ▶️ Jak używać
-
-Plik wejściowy `input.txt`:
-
+Ręcznie:
+```
+pip install fastapi uvicorn sympy
+uvicorn api:app --reload
+```
 
 ---
 
-# math-validator-2.0
+## Filtry
 
-py -3.14 -m pip install uvicorn fastapi
+| Filtr | Co sprawdza |
+|---|---|
+| `information` | entropia/redundancja/złożoność zapisu wyrażenia |
+| `syntax` | niedomknięte nawiasy, podwójne operatory, urwane operatory |
+| `algebra` | dzielenie przez zero (`zoo`), wartości zespolone |
+| `logic` | nieskończoności (`oo`, `-oo`), `nan`, `zoo` jako wynik |
+| `numeric` | rozwiązania równania `wyrażenie = 0` (rzeczywiste i zespolone) |
+| `harmonic` | obecność funkcji trygonometrycznych, okresowość, π |
+| `moebius` | inwersje (`**-1`, `**(-1)`), dzielenie, zagnieżdżenia — "gęstość Möbiusa" |
+| `topology` | dziedzina ciągłości (czy `is_all_reals`, czy są wykluczone punkty) |
+| `singularity` | osobliwości i skręty τ (lim(0⁺) ≠ lim(0⁻)) |
+| `prime_spectrum` | dla wyrażeń całkowitych: rozkład liczb pierwszych ≤ N^(1/3) |
+| `misleading` | wyrażenia pozornie proste, które ukrywają osobliwość po uproszczeniu (`x/x`, upraszczalne ułamki) |
+| `millennium` | dopasowanie słów kluczowych/struktury do 7 Problemów Milenijnych |
 
-py -3.14 -m uvicorn api:app --reload
+**Uwaga o `misleading`:** filtr wykrywa konkretnie trzy przypadki —
+`misleading_zero` (upraszcza się do 0, ale ma dzielnik), `simplifiable_fraction`
+(ułamek do uproszczenia przez `cancel()`) i `hidden_singularity` (domena po
+uproszczeniu różni się od domeny oryginału, np. `x/x`). Nie wykrywa tautologii
+tekstowych typu `1=1=1` czy `0^0=1` — to wymagałoby osobnego parsera składni
+"=", którego obecnie nie ma (patrz sekcja Ograniczenia).
 
-uvicorn app:app --reload
+### Problemy Milenijne rozpoznawane przez `millennium`
 
-http://127.0.0.1:8000/validate?expr=1/(x-1)
+| ID | Nazwa | Status |
+|---|---|---|
+| P_vs_NP | P vs NP | otwarty |
+| Riemann | Hipoteza Riemanna | otwarty |
+| Birch_Swinnerton_Dyer | Hipoteza Bircha i Swinnertona-Dyera | otwarty |
+| Yang_Mills | Yang–Mills i luka masowa | otwarty |
+| Navier_Stokes | Równania Naviera–Stokesa | otwarty |
+| Poincare | Hipoteza Poincarégo | **rozwiązany** (Perelman, 2003) |
+| Hodge | Hipoteza Hodge'a | otwarty |
 
-## 🧩 Przykłady problemów milenijnych (dla testów walidatora)
+---
 
-Poniżej dwa krótkie przykłady równań związanych z problemami milenijnymi,
-które można przepuścić przez `math-validator-2.0` w celu analizy strukturalnej.
+## Kształt odpowiedzi
 
-### 1. Hipoteza Riemanna
-Wyrażenie definiujące funkcję ζ(s):
+```json
+{
+  "filters": {
+    "information": {...}, "syntax": {...}, "algebra": {...}, "logic": {...},
+    "numeric": {...}, "harmonic": {...}, "moebius": {...}, "topology": {...},
+    "singularity": {...}, "prime_spectrum": {...}, "misleading": {...},
+    "millennium": {...}
+  },
+  "stability": { "cycle": 1, "angle": 72, "phase": "UNDEFINED", "orientation": "M_PRIME" }
+}
+```
 
-ζ(s) = ∑_{n=1}^{∞} 1 / n^s
+Każdy filtr zwraca własny, niezależny słownik — dokładny kształt pól znajdziesz
+w danym pliku `filters/*.py` lub w testach (`tests/`), które sprawdzają realne
+wartości dla konkretnych wyrażeń.
 
+---
 
-Walidator może wykryć:
-- niejednoznaczność dziedziny,
-- punkty osobliwe,
-- problemy mylne przy złej składni zapisu sumy.
+## Ograniczenia
 
-### 2. Równania Naviera–Stokesa
-Podstawowa forma równania ruchu płynu:
+- Równości zapisane jako gołe `x = y` **nie parsują się** — Python traktuje `=`
+  jako przypisanie, nie porównanie, więc `sympify()` rzuca `SyntaxError` już na
+  starcie (`syntax`/wszystkie filtry zwracają `ok: False`). Trzeba używać
+  zapisu bez `=` (samo wyrażenie) albo jawnie `Eq(lewa, prawa)`.
+- `misleading` nie łapie tautologii tekstowych (`1=1=1`) z tego samego powodu.
+- `millennium` to dopasowanie po słowach kluczowych/strukturze symbolicznej —
+  nie jest to dowód matematyczny ani ocena poprawności rozwiązania.
 
-∂u/∂t + (u · ∇)u = -∇p + νΔu
+---
 
+## Testy
 
-Walidator może wykryć:
-- brak określenia zmiennych,
-- niekompletność operatorów,
-- strukturalne niespójności w zapisie.
+```
+pytest tests/ -q
+```
 
-*(To nie są „rozwiązania”, tylko przykłady równań używanych w testach walidatora.)*
+37 testów, wszystkie sprawdzają realny kształt odpowiedzi `validate()`
+(`result["filters"][...]`) na konkretnych wyrażeniach — nie mocki.
 
+---
+
+## Historia poprawek (ten pakiet)
+
+- **Naprawiono crash** `information_filter.py`: `p.original` → `p.raw`
+  (`ParsedExpr` nie ma pola `original`; każde poprawne wyrażenie crashowało API).
+- **Naprawiono `millennium_filter`**: usunięto martwy import
+  `from sympy import Laplacian` (nie istnieje w top-level sympy, cicho wyłączał
+  całą detekcję przez `try/except`) i dopięto filtr do `validator.py` — wcześniej
+  w ogóle nie był wołany mimo że był w pełni zaimplementowany.
+- **Naprawiono `moebius_filter`**: `inversion` było `False` dla `x**(-1)` (regex
+  łapał tylko dosłowne `**-1` bez nawiasu). Rozszerzono na `**-1`, `**(-1)`, `** -1`.
+- **Naprawiono 35/35 testów** — wszystkie odwoływały się do `result["nazwa"]`
+  zamiast `result["filters"]["nazwa"]`, plus kilkanaście głębszych niezgodności
+  kluczy (np. `syntax`/`logic` nie mają `"status"`, tylko `"ok"`) — przepisane na
+  realne zachowanie filtrów, zweryfikowane bezpośrednio na `validate()`.
+- Dodano klawiaturę matematyczną w UI (`api.py`): cyfry, operatory, nawiasy,
+  zmienne/stałe (x, y, z, e, ∞, Λ, τ, ρ), funkcje (sin, cos, tan, log, exp, abs).
+- **Przycięto paczkę** do plików faktycznie używanych przez `validator.py` /
+  `api.py` (12 filtrów + `core.py` + testy). Usunięto ~15 nieużywanych,
+  niepodpiętych nigdzie skryptów (m.in. `entropy_flow.py`,
+  `mini‑structure‑validator.py`, `topology.py`, `parser.py`, `app.py`) oraz
+  nieużywany 824 KB plik graficzny — w tym plik z nazwą zawierającą niestandardowy
+  znak `‑` (U+2011, nie zwykły myślnik), który najpewniej blokował rozpakowywanie
+  archiwum w Eksploratorze Windows.
+
+---
+
+## Licencja
+
+MIT — patrz `LICENSE`.
