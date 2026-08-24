@@ -10,6 +10,13 @@ oraz powiązania z Problemami Milenijnymi.
 Udostępniony jako REST API (FastAPI) z prostym interfejsem webowym zawierającym
 edytor + klawiaturę matematyczną (cyfry, operatory, zmienne, funkcje).
 
+**Historia:** ta wersja zastępuje `math-validator` (v1, zarchiwizowane repo) -
+v1 było prototypem/szkieletem, w większości zaślepki (`return {"status": "ok",
+"details": ...}`) bez realnej logiki. v2.0 to pierwsza w pełni działająca
+implementacja tych 12 filtrów. Dalej rozwijana jako `math-validator-3.0`
+(dodaje logikę zdaniową, jednostki fizyczne, algebrę liniową, CLI, wtyczki -
+zachowując wszystkie filtry v2.0 bez zmian).
+
 ---
 
 ## Uruchomienie
