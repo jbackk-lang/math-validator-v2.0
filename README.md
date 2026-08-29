@@ -113,13 +113,31 @@ wartości dla konkretnych wyrażeń.
 pytest tests/ -q
 ```
 
-37 testów, wszystkie sprawdzają realny kształt odpowiedzi `validate()`
+43 testów, wszystkie sprawdzają realny kształt odpowiedzi `validate()`
 (`result["filters"][...]`) na konkretnych wyrażeniach — nie mocki.
 
 ---
 
 ## Historia poprawek (ten pakiet)
 
+- **Rekalibrowano `prime_spectrum_filter.py`** (ta sesja) — repo miało
+  jeszcze ORYGINALNĄ, nigdy nie naprawioną wersję tego filtra (sztywny
+  próg 0.25 na ad hoc metryce, bez modelu zerowego, z niepopartym
+  twierdzeniem "widmo zgodne z logarytmiczną spiralą / 1/f
+  (Λ–τ–ρ/TIMDR)"). `math-validator-3.0` przeszedł tymczasem DWIE
+  niezależne naprawy tego samego pliku, których to repo nigdy nie
+  dostało (duplication-drift). Sportowano obie naraz: (1) model zerowy
+  z losowych ciągów zamiast stałej 0.25, (2) rekalibracja na
+  właściwy, ugruntowany w analitycznej teorii liczb model Cramera/
+  Gallaghera (znormalizowana luka gap/log(p) ~ Exp(1) asymptotycznie).
+  Wynik na 78498 prawdziwych pierwszych do 10^6: średnia=1.0017
+  (zgodna z modelem), korelacja sąsiednich luk r=-0.0568, p≈4.4e-57
+  (mała, ale realna struktura wykraczająca poza sam model Cramera —
+  znany w literaturze efekt, NIE potwierdzony związek z TIMDR).
+  Etykieta "log_spiral_1_over_f" i twierdzenie o TIMDR Λ–τ–ρ usunięte
+  całkowicie. Filtr teraz uczciwie odmawia klasyfikacji przy <30
+  lukach zamiast zgadywać (przez ograniczenie do pierwszych ≤N^(1/3)
+  sensowna statystyka wymaga N ≥ ok. 2 048 383). Testy: 37 → 43.
 - **Naprawiono crash** `information_filter.py`: `p.original` → `p.raw`
   (`ParsedExpr` nie ma pola `original`; każde poprawne wyrażenie crashowało API).
 - **Naprawiono `millennium_filter`**: usunięto martwy import
