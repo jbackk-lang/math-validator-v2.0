@@ -17,6 +17,21 @@ implementacja tych 12 filtrów. Dalej rozwijana jako `math-validator-3.0`
 (dodaje logikę zdaniową, jednostki fizyczne, algebrę liniową, CLI, wtyczki -
 zachowując wszystkie filtry v2.0 bez zmian).
 
+> **⚠️ Ta wersja (v2.0) jest legacy.** Aktywnie rozwijana jest
+> [`math-validator-3.0`](https://github.com/jbackk-lang/math-validator-3.0) -
+> zawiera te same 12 filtrów (bez zmian) PLUS: logikę zdaniową
+> (tautologia/CNF/DNF), jednostki fizyczne (SI), algebrę liniową (macierze),
+> analizę zmiennych wolnych/związanych, wykrywanie niejednoznaczności zapisu
+> (`a/b*c`, `-a^b`), bogatszą diagnostykę błędów, wykrywanie paradoksów w
+> sekwencji kroków derywacji, system wtyczek, CLI i bogatszy REST API
+> (osobne endpointy per domena, np. `/millennium`, `/api/v3/paradox`,
+> `/solve`, `/latex`) - v2.0 ma tylko `GET /validate?expr=`.
+>
+> To repo dostaje wyłącznie **fixy do 12 wspólnych filtrów** (portowane z
+> v3.0, gdy tam coś się naprawi - patrz "Historia poprawek" niżej), NIE nowe
+> funkcje v3 - te zostają wyłącznie w v3.0. Jeśli potrzebujesz czegoś z listy
+> wyżej, użyj `math-validator-3.0` zamiast tego repo.
+
 ---
 
 ## Uruchomienie
